@@ -179,6 +179,26 @@ api_patch() {
   fi
 }
 
+api_delete() {
+  local path="$1"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[DRY-RUN] Would DELETE $path" >&2
+    echo "204"
+    return
+  fi
+  local response http_code resp_body
+  response=$(curl -s -w "\n%{http_code}" \
+    -X DELETE "$GUAC_API_URL$path" \
+    -H "Guacamole-Token: $TOKEN")
+  http_code=$(tail -1 <<< "$response")
+  resp_body=$(sed '$d' <<< "$response")
+  if [[ "$http_code" != "200" && "$http_code" != "204" && "$http_code" != "404" ]]; then
+    echo "[ERROR] DELETE $path failed (HTTP $http_code): $resp_body" >&2
+    exit 1
+  fi
+  echo "$http_code"
+}
+
 # ─── Resource Layer ──────────────────────────────────────────────────────────
 
 url_encode() {
