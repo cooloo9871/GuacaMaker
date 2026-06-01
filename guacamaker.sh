@@ -391,6 +391,8 @@ delete_connection_group_if_empty() {
 
 api_login
 
+pw_accounts=()
+pw_passwords=()
 row_num=0
 while IFS='|' read -r userAccount userPassword connGroup connName \
                        connProtocol connIP connPort connAccount connPassword connDomain; do
@@ -399,6 +401,11 @@ while IFS='|' read -r userAccount userPassword connGroup connName \
   echo "[INFO] Row $row_num: $userAccount → $connName" >&2
 
   if [[ "$MODE" == "create" ]]; then
+    if [[ -z "$userPassword" ]]; then
+      userPassword=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 7)
+    fi
+    pw_accounts+=("$userAccount")
+    pw_passwords+=("$userPassword")
     group_id=$(ensure_connection_group "$connGroup")
     conn_id=$(ensure_connection "$connName" "$group_id" "$connProtocol" \
                "$connIP" "$connPort" "$connAccount" "$connPassword" "$connDomain")
@@ -420,5 +427,15 @@ while IFS='|' read -r userAccount userPassword connGroup connName \
   fi
 
 done < <(sed 's/\r//' "$MAPPING_LIST" | grep -v '^#' | grep -v '^[[:space:]]*$')
+
+if [[ "$MODE" == "create" && "$DRY_RUN" -eq 0 ]]; then
+  {
+    echo "userAccount,userPassword"
+    for i in "${!pw_accounts[@]}"; do
+      echo "${pw_accounts[$i]},${pw_passwords[$i]}"
+    done
+  } > "$SCRIPT_DIR/passwords.csv"
+  echo "[INFO] Passwords saved to $SCRIPT_DIR/passwords.csv" >&2
+fi
 
 echo "[INFO] Done. $row_num rows processed." >&2
