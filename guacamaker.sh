@@ -256,7 +256,19 @@ ensure_connection() {
   ' <<< "$connections" | head -1)
 
   local params
-  if [[ -n "$domain" ]]; then
+  if [[ "$protocol" == "rdp" ]]; then
+    if [[ -n "$domain" ]]; then
+      params=$(jq -n \
+        --arg h "$ip" --arg p "$port" \
+        --arg u "$account" --arg pw "$password" --arg d "$domain" \
+        '{"hostname":$h,"port":$p,"username":$u,"password":$pw,"domain":$d,"security":"any","ignore-cert":"true"}')
+    else
+      params=$(jq -n \
+        --arg h "$ip" --arg p "$port" \
+        --arg u "$account" --arg pw "$password" \
+        '{"hostname":$h,"port":$p,"username":$u,"password":$pw,"security":"any","ignore-cert":"true"}')
+    fi
+  elif [[ -n "$domain" ]]; then
     params=$(jq -n \
       --arg h "$ip" --arg p "$port" \
       --arg u "$account" --arg pw "$password" --arg d "$domain" \
