@@ -305,6 +305,69 @@ assign_connection() {
   echo "[INFO]   assigned $conn_name to $username" >&2
 }
 
+delete_user() {
+  local username="$1"
+  local status
+  status=$(api_delete "/api/session/data/$DATA_SOURCE/users/$(url_encode "$username")")
+  if [[ "$status" == "404" ]]; then
+    echo "[INFO]   user '$username'... not found, skipped" >&2
+  else
+    echo "[INFO]   user '$username'... deleted" >&2
+  fi
+}
+
+delete_connection() {
+  local name="$1" group_id="$2"
+  local connections existing_id
+  connections=$(api_get "/api/session/data/$DATA_SOURCE/connections")
+  existing_id=$(jq -r --arg name "$name" --arg gid "$group_id" '
+    to_entries[]
+    | select(.value.name == $name and .value.parentIdentifier == $gid and .value.identifier != null)
+    | .value.identifier
+  ' <<< "$connections" | head -1)
+
+  if [[ -z "$existing_id" ]]; then
+    echo "[INFO]   connection '$name'... not found, skipped" >&2
+    return
+  fi
+
+  local status
+  status=$(api_delete "/api/session/data/$DATA_SOURCE/connections/$existing_id")
+  if [[ "$status" == "404" ]]; then
+    echo "[INFO]   connection '$name'... not found, skipped" >&2
+  else
+    echo "[INFO]   connection '$name'... deleted (id=$existing_id)" >&2
+  fi
+}
+
+delete_connection_group_if_empty() {
+  local name="$1"
+  local groups group_id
+  groups=$(api_get "/api/session/data/$DATA_SOURCE/connectionGroups")
+  group_id=$(jq -r --arg name "$name" '
+    to_entries[]
+    | select(.value.name == $name and .key != "ROOT" and .value.identifier != null)
+    | .value.identifier
+  ' <<< "$groups" | head -1)
+
+  if [[ -z "$group_id" ]]; then
+    return
+  fi
+
+  local connections remaining
+  connections=$(api_get "/api/session/data/$DATA_SOURCE/connections")
+  remaining=$(jq -r --arg gid "$group_id" '
+    [to_entries[] | select(.value.parentIdentifier == $gid)] | length
+  ' <<< "$connections")
+
+  if [[ "$remaining" -gt 0 ]]; then
+    echo "[INFO]   connection group '$name'... kept (has connections)" >&2
+  else
+    api_delete "/api/session/data/$DATA_SOURCE/connectionGroups/$group_id" >/dev/null
+    echo "[INFO]   connection group '$name'... deleted (empty)" >&2
+  fi
+}
+
 # ─── Main ────────────────────────────────────────────────────────────────────
 
 api_login
