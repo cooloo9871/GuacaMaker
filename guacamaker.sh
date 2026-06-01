@@ -13,19 +13,20 @@ for arg in "$@"; do
   case "$arg" in
     --create)  [[ -n "$MODE" ]] && { echo "[ERROR] --create, --delete and --list are mutually exclusive" >&2; exit 1; }; MODE=create ;;
     --delete)  [[ -n "$MODE" ]] && { echo "[ERROR] --create, --delete and --list are mutually exclusive" >&2; exit 1; }; MODE=delete ;;
-    --list)    [[ -n "$MODE" ]] && { echo "[ERROR] --create, --delete and --list are mutually exclusive" >&2; exit 1; }; MODE=list ;;
+    --list|--list-pw) [[ -n "$MODE" ]] && { echo "[ERROR] --create, --delete and --list are mutually exclusive" >&2; exit 1; }; MODE=list ;;
     --dry-run) DRY_RUN=1 ;;
     *) echo "[ERROR] Unknown argument: $arg" >&2; exit 1 ;;
   esac
 done
 
 if [[ -z "$MODE" ]]; then
-  echo "Usage: guacamaker.sh --create | --delete | --list [--dry-run]" >&2
+  echo "Usage: guacamaker.sh --create | --delete | --list | --list-pw [--dry-run]" >&2
   echo "" >&2
-  echo "  --create    建立或更新 mapping.list 中的 users 與 connections" >&2
-  echo "  --delete    刪除 mapping.list 中的 users、connections 及空的 connection groups" >&2
-  echo "  --list      列出所有帳號與密碼（CSV 格式）" >&2
-  echo "  --dry-run   模擬執行，不實際呼叫寫入 API（適用 --create 與 --delete）" >&2
+  echo "  --create     建立或更新 mapping.list 中的 users 與 connections" >&2
+  echo "  --delete     刪除 mapping.list 中的 users、connections 及空的 connection groups" >&2
+  echo "  --list       列出所有帳號與密碼（CSV 格式）" >&2
+  echo "  --list-pw    同 --list" >&2
+  echo "  --dry-run    模擬執行，不實際呼叫寫入 API（適用 --create 與 --delete）" >&2
   exit 1
 fi
 
