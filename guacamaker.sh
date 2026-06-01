@@ -64,6 +64,10 @@ api_login() {
   fi
   TOKEN=$(jq -r '.authToken' <<< "$body")
   DATA_SOURCE=$(jq -r '.dataSource' <<< "$body")
+  if [[ "$TOKEN" == "null" || -z "$TOKEN" ]]; then
+    echo "[ERROR] Failed to extract authToken from login response" >&2
+    exit 1
+  fi
 }
 
 api_get() {
