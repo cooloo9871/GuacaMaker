@@ -312,16 +312,23 @@ ensure_connection() {
 ensure_user() {
   local username="$1" password="$2"
   local users
+  _user_created=0
+  _user_password=""
   users=$(api_get "/api/session/data/$DATA_SOURCE/users")
 
   if jq -e --arg u "$username" 'has($u)' <<< "$users" &>/dev/null; then
     echo "[INFO]   user '$username'... exists (password unchanged)" >&2
   else
+    if [[ -z "$password" ]]; then
+      password=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 7 || true)
+    fi
     local body
     body=$(jq -n --arg u "$username" --arg p "$password" \
       '{"username":$u,"password":$p,"attributes":{}}')
     api_post "/api/session/data/$DATA_SOURCE/users" "$body" >/dev/null
     echo "[INFO]   user '$username'... created" >&2
+    _user_created=1
+    _user_password="$password"
   fi
 }
 
@@ -432,18 +439,15 @@ while IFS='|' read -r userAccount userPassword connGroup connName \
   echo "[INFO] Row $row_num: $userAccount → $connName" >&2
 
   if [[ "$MODE" == "create" ]]; then
-    if [[ -z "$userPassword" ]]; then
-      userPassword=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 7 || true)
-    fi
-    if [[ -z "${_seen_users[$userAccount]:-}" ]]; then
-      pw_accounts+=("$userAccount")
-      pw_passwords+=("$userPassword")
-      _seen_users[$userAccount]=1
-    fi
     group_id=$(ensure_connection_group "$connGroup")
     conn_id=$(ensure_connection "$connName" "$group_id" "$connProtocol" \
                "$connIP" "$connPort" "$connAccount" "$connPassword" "$connDomain")
     ensure_user "$userAccount" "$userPassword"
+    if [[ "$_user_created" -eq 1 && -z "${_seen_users[$userAccount]:-}" ]]; then
+      pw_accounts+=("$userAccount")
+      pw_passwords+=("$_user_password")
+      _seen_users[$userAccount]=1
+    fi
     assign_connection "$userAccount" "$conn_id" "$connName" "$group_id"
   else
     _groups=$(api_get "/api/session/data/$DATA_SOURCE/connectionGroups")
