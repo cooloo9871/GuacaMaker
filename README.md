@@ -25,7 +25,6 @@ chmod +x guacamaker.sh
 GUAC_API_URL=http://your-guacamole:8080/guacamole
 GUAC_ADMIN_USER=guacadmin
 GUAC_ADMIN_PASS=your-password
-GUAC_DATA_SOURCE=mysql
 ```
 
 **2. 編輯 `mapping.list`**，填入要建立的使用者與連線：
@@ -52,7 +51,8 @@ Guacamole 管理 API 的連線參數。
 | `GUAC_API_URL` | 是 | — | Guacamole 完整 base URL，含路徑，不含尾部 `/` |
 | `GUAC_ADMIN_USER` | 是 | — | 有管理權限的帳號 |
 | `GUAC_ADMIN_PASS` | 是 | — | 對應密碼 |
-| `GUAC_DATA_SOURCE` | 否 | `mysql` | API 路徑中的資料來源名稱；PostgreSQL 後端請改為 `postgresql` |
+
+> `dataSource`（mysql / postgresql）由腳本登入時自動從 Guacamole 回應取得，不需手動設定。
 
 ### mapping.list
 
@@ -136,9 +136,6 @@ Dry-run 模式下，寫入操作會顯示為：
 
 **Q: 登入失敗（HTTP 403）？**
 確認 `GUAC_ADMIN_USER` 帳號有管理員權限，且密碼正確。
-
-**Q: `GUAC_DATA_SOURCE` 應該填什麼？**
-通常是 `mysql`（MySQL/MariaDB 後端）或 `postgresql`（PostgreSQL 後端）。不確定時可登入 Guacamole 後，對 `/api/tokens` 的回應中找 `dataSource` 欄位。
 
 **Q: mapping.list 可以有多個 connection group 嗎？**
 可以。每行可以指定不同的 `connGroup`，腳本會自動建立或重用。
