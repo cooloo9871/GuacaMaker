@@ -149,6 +149,10 @@ api_patch() {
 
 # ─── Resource Layer ──────────────────────────────────────────────────────────
 
+url_encode() {
+  jq -rn --arg s "$1" '$s | @uri'
+}
+
 ensure_connection_group() {
   local name="$1"
   local groups existing_id
@@ -232,7 +236,7 @@ ensure_user() {
     '{"username":$u,"password":$p,"attributes":{}}')
 
   if jq -e --arg u "$username" 'has($u)' <<< "$users" &>/dev/null; then
-    api_put "/api/session/data/$DATA_SOURCE/users/$username" "$body"
+    api_put "/api/session/data/$DATA_SOURCE/users/$(url_encode "$username")" "$body"
     echo "[INFO]   user '$username'... updated" >&2
   else
     api_post "/api/session/data/$DATA_SOURCE/users" "$body" >/dev/null
@@ -245,6 +249,6 @@ assign_connection() {
   local body
   body=$(jq -n --arg cid "$conn_id" \
     '[{"op":"add","path":("/connectionPermissions/" + $cid),"value":"READ"}]')
-  api_patch "/api/session/data/$DATA_SOURCE/users/$username/permissions" "$body"
+  api_patch "/api/session/data/$DATA_SOURCE/users/$(url_encode "$username")/permissions" "$body"
   echo "[INFO]   assigned $conn_name to $username" >&2
 }
