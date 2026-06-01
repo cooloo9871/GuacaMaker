@@ -404,9 +404,9 @@ delete_connection_group_if_empty() {
 trap '
   if [[ "$MODE" == "create" && "$DRY_RUN" -eq 0 && "${#pw_accounts[@]}" -gt 0 ]]; then
     {
-      echo '"'"'"userAccount","userPassword"'"'"'
+      echo "userAccount,userPassword"
       for i in "${!pw_accounts[@]}"; do
-        echo "\"${pw_accounts[$i]//\"/\"\"}\",\"${pw_passwords[$i]//\"/\"\"}\""
+        echo "${pw_accounts[$i]},${pw_passwords[$i]}"
       done
     } > "$SCRIPT_DIR/passwords.csv"
     echo "[INFO] Passwords saved to $SCRIPT_DIR/passwords.csv" >&2
