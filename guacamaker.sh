@@ -68,6 +68,9 @@ api_login() {
     echo "[ERROR] Failed to extract authToken from login response" >&2
     exit 1
   fi
+  if [[ "$DATA_SOURCE" == "null" || -z "$DATA_SOURCE" ]]; then
+    DATA_SOURCE="$GUAC_DATA_SOURCE"
+  fi
 }
 
 api_get() {
@@ -270,6 +273,6 @@ while IFS='|' read -r userAccount userPassword connGroup connName \
   ensure_user "$userAccount" "$userPassword"
   assign_connection "$userAccount" "$conn_id" "$connName"
 
-done < <(grep -v '^#' "$MAPPING_LIST" | grep -v '^[[:space:]]*$')
+done < <(sed 's/\r//' "$MAPPING_LIST" | grep -v '^#' | grep -v '^[[:space:]]*$')
 
 echo "[INFO] Done. $row_num rows processed." >&2
