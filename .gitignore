@@ -1,0 +1,3 @@
+# 含真實憑證的設定檔，不 commit 進 git
+env.conf
+mapping.list
