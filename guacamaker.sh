@@ -223,3 +223,28 @@ ensure_connection() {
     echo "$existing_id"
   fi
 }
+
+ensure_user() {
+  local username="$1" password="$2"
+  local users body
+  users=$(api_get "/api/session/data/$DATA_SOURCE/users")
+  body=$(jq -n --arg u "$username" --arg p "$password" \
+    '{"username":$u,"password":$p,"attributes":{}}')
+
+  if jq -e --arg u "$username" 'has($u)' <<< "$users" &>/dev/null; then
+    api_put "/api/session/data/$DATA_SOURCE/users/$username" "$body"
+    echo "[INFO]   user '$username'... updated" >&2
+  else
+    api_post "/api/session/data/$DATA_SOURCE/users" "$body" >/dev/null
+    echo "[INFO]   user '$username'... created" >&2
+  fi
+}
+
+assign_connection() {
+  local username="$1" conn_id="$2" conn_name="$3"
+  local body
+  body=$(jq -n --arg cid "$conn_id" \
+    '[{"op":"add","path":("/connectionPermissions/" + $cid),"value":"READ"}]')
+  api_patch "/api/session/data/$DATA_SOURCE/users/$username/permissions" "$body"
+  echo "[INFO]   assigned $conn_name to $username" >&2
+}
