@@ -311,15 +311,15 @@ ensure_connection() {
 
 ensure_user() {
   local username="$1" password="$2"
-  local users body
+  local users
   users=$(api_get "/api/session/data/$DATA_SOURCE/users")
-  body=$(jq -n --arg u "$username" --arg p "$password" \
-    '{"username":$u,"password":$p,"attributes":{}}')
 
   if jq -e --arg u "$username" 'has($u)' <<< "$users" &>/dev/null; then
-    api_put "/api/session/data/$DATA_SOURCE/users/$(url_encode "$username")" "$body"
-    echo "[INFO]   user '$username'... updated" >&2
+    echo "[INFO]   user '$username'... exists (password unchanged)" >&2
   else
+    local body
+    body=$(jq -n --arg u "$username" --arg p "$password" \
+      '{"username":$u,"password":$p,"attributes":{}}')
     api_post "/api/session/data/$DATA_SOURCE/users" "$body" >/dev/null
     echo "[INFO]   user '$username'... created" >&2
   fi
