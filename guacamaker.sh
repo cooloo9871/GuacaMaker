@@ -11,8 +11,8 @@ MODE=""
 
 for arg in "$@"; do
   case "$arg" in
-    --create)  MODE=create ;;
-    --delete)  MODE=delete ;;
+    --create)  [[ -n "$MODE" ]] && { echo "[ERROR] --create and --delete are mutually exclusive" >&2; exit 1; }; MODE=create ;;
+    --delete)  [[ -n "$MODE" ]] && { echo "[ERROR] --create and --delete are mutually exclusive" >&2; exit 1; }; MODE=delete ;;
     --dry-run) DRY_RUN=1 ;;
     *) echo "[ERROR] Unknown argument: $arg" >&2; exit 1 ;;
   esac
