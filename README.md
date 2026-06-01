@@ -14,7 +14,6 @@
 ```bash
 git clone https://github.com/your-org/GuacaMaker.git
 cd GuacaMaker
-chmod +x guacamaker.sh
 ```
 
 ## 快速開始
