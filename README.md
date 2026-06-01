@@ -36,7 +36,7 @@ bob|Bob@2024|ServerGroup|LinuxBox01|ssh|192.168.1.11|22|root||
 **3. 執行**：
 
 ```bash
-./guacamaker.sh
+./guacamaker.sh --create
 ```
 
 ## 設定檔說明
@@ -81,10 +81,10 @@ userAccount|userPassword|connGroup|connName|connProtocol|connIP|connPort|connAcc
 
 ## 用法
 
-### 正常執行
+### 建立或更新（--create）
 
 ```bash
-./guacamaker.sh
+./guacamaker.sh --create
 ```
 
 執行時輸出範例：
@@ -104,12 +104,36 @@ userAccount|userPassword|connGroup|connName|connProtocol|connIP|connPort|connAcc
 [INFO] Done. 2 rows processed.
 ```
 
+### 刪除（--delete）
+
+```bash
+./guacamaker.sh --delete
+```
+
+依序刪除 `mapping.list` 中每筆資料的 user、connection，若 connection group 已無任何 connection 則一併刪除。
+
+執行時輸出範例：
+
+```
+[INFO] Logging in to http://localhost:8080/guacamole...
+[INFO] Row 1: alice → WinServer01
+[INFO]   user 'alice'... deleted
+[INFO]   connection 'WinServer01'... deleted (id=7)
+[INFO]   connection group 'ServerGroup'... kept (has connections)
+[INFO] Row 2: bob → LinuxBox01
+[INFO]   user 'bob'... deleted
+[INFO]   connection 'LinuxBox01'... deleted (id=8)
+[INFO]   connection group 'ServerGroup'... deleted (empty)
+[INFO] Done. 2 rows processed.
+```
+
 ### Dry-run 模式
 
 加上 `--dry-run` 可模擬執行——**只讀取不寫入**，確認設定無誤後再正式執行：
 
 ```bash
-./guacamaker.sh --dry-run
+./guacamaker.sh --create --dry-run
+./guacamaker.sh --delete --dry-run
 ```
 
 Dry-run 模式下，寫入操作會顯示為：
