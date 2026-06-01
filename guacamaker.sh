@@ -146,3 +146,33 @@ api_patch() {
     exit 1
   fi
 }
+
+# ─── Resource Layer ──────────────────────────────────────────────────────────
+
+ensure_connection_group() {
+  local name="$1"
+  local groups existing_id
+  groups=$(api_get "/api/session/data/$DATA_SOURCE/connectionGroups")
+  existing_id=$(jq -r --arg name "$name" '
+    to_entries[]
+    | select(.value.name == $name and .key != "ROOT")
+    | .value.identifier
+  ' <<< "$groups" | head -1)
+
+  if [[ -z "$existing_id" ]]; then
+    local body result new_id
+    body=$(jq -n --arg name "$name" \
+      '{"name":$name,"type":"ORGANIZATIONAL","parentIdentifier":"ROOT","attributes":{}}')
+    result=$(api_post "/api/session/data/$DATA_SOURCE/connectionGroups" "$body")
+    new_id=$(jq -r '.identifier' <<< "$result")
+    echo "[INFO]   connection group '$name'... created (id=$new_id)" >&2
+    echo "$new_id"
+  else
+    local body
+    body=$(jq -n --arg name "$name" --arg id "$existing_id" \
+      '{"name":$name,"type":"ORGANIZATIONAL","parentIdentifier":"ROOT","identifier":$id,"attributes":{}}')
+    api_put "/api/session/data/$DATA_SOURCE/connectionGroups/$existing_id" "$body"
+    echo "[INFO]   connection group '$name'... exists (id=$existing_id)" >&2
+    echo "$existing_id"
+  fi
+}
