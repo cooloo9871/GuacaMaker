@@ -379,11 +379,23 @@ while IFS='|' read -r userAccount userPassword connGroup connName \
   row_num=$((row_num + 1))
   echo "[INFO] Row $row_num: $userAccount → $connName" >&2
 
-  group_id=$(ensure_connection_group "$connGroup")
-  conn_id=$(ensure_connection "$connName" "$group_id" "$connProtocol" \
-             "$connIP" "$connPort" "$connAccount" "$connPassword" "$connDomain")
-  ensure_user "$userAccount" "$userPassword"
-  assign_connection "$userAccount" "$conn_id" "$connName"
+  if [[ "$MODE" == "create" ]]; then
+    group_id=$(ensure_connection_group "$connGroup")
+    conn_id=$(ensure_connection "$connName" "$group_id" "$connProtocol" \
+               "$connIP" "$connPort" "$connAccount" "$connPassword" "$connDomain")
+    ensure_user "$userAccount" "$userPassword"
+    assign_connection "$userAccount" "$conn_id" "$connName"
+  else
+    _groups=$(api_get "/api/session/data/$DATA_SOURCE/connectionGroups")
+    group_id=$(jq -r --arg name "$connGroup" '
+      to_entries[]
+      | select(.value.name == $name and .key != "ROOT" and .value.identifier != null)
+      | .value.identifier
+    ' <<< "$_groups" | head -1)
+    delete_user "$userAccount"
+    delete_connection "$connName" "$group_id"
+    delete_connection_group_if_empty "$connGroup"
+  fi
 
 done < <(sed 's/\r//' "$MAPPING_LIST" | grep -v '^#' | grep -v '^[[:space:]]*$')
 
