@@ -7,13 +7,25 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ENV_CONF="$SCRIPT_DIR/env.conf"
 MAPPING_LIST="$SCRIPT_DIR/mapping.list"
 DRY_RUN=0
+MODE=""
 
 for arg in "$@"; do
   case "$arg" in
+    --create)  MODE=create ;;
+    --delete)  MODE=delete ;;
     --dry-run) DRY_RUN=1 ;;
     *) echo "[ERROR] Unknown argument: $arg" >&2; exit 1 ;;
   esac
 done
+
+if [[ -z "$MODE" ]]; then
+  echo "Usage: guacamaker.sh --create | --delete [--dry-run]" >&2
+  echo "" >&2
+  echo "  --create    建立或更新 mapping.list 中的 users 與 connections" >&2
+  echo "  --delete    刪除 mapping.list 中的 users、connections 及空的 connection groups" >&2
+  echo "  --dry-run   模擬執行，不實際呼叫寫入 API" >&2
+  exit 1
+fi
 
 for cmd in curl jq; do
   if ! command -v "$cmd" &>/dev/null; then
