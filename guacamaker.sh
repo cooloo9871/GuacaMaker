@@ -58,6 +58,23 @@ api_login() {
     --data-urlencode "password=$GUAC_ADMIN_PASS")
   http_code=$(tail -1 <<< "$response")
   body=$(sed '$d' <<< "$response")
+
+  if [[ "$http_code" == "403" ]] && \
+     jq -e '.type == "INSUFFICIENT_CREDENTIALS" and ([.expected[]?.name] | contains(["guac-totp"]))' \
+     <<< "$body" &>/dev/null; then
+    local totp_code
+    printf "[INFO] TOTP required. Enter code: " >&2
+    read -r totp_code < /dev/tty
+    response=$(curl -s -w "\n%{http_code}" \
+      -X POST "$GUAC_API_URL/api/tokens" \
+      -H "Content-Type: application/x-www-form-urlencoded" \
+      --data-urlencode "username=$GUAC_ADMIN_USER" \
+      --data-urlencode "password=$GUAC_ADMIN_PASS" \
+      --data-urlencode "guac-totp=$totp_code")
+    http_code=$(tail -1 <<< "$response")
+    body=$(sed '$d' <<< "$response")
+  fi
+
   if [[ "$http_code" != "200" ]]; then
     echo "[ERROR] Login failed (HTTP $http_code): $body" >&2
     exit 1

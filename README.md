@@ -136,6 +136,13 @@ Dry-run 模式下，寫入操作會顯示為：
 **Q: 登入失敗（HTTP 403）？**
 確認 `GUAC_ADMIN_USER` 帳號有管理員權限，且密碼正確。
 
+**Q: Guacamole 啟用了雙因子驗證（TOTP）？**
+腳本會自動偵測並暫停提示輸入：
+```
+[INFO] TOTP required. Enter code: ______
+```
+輸入 6 位數驗證碼後繼續執行。
+
 **Q: mapping.list 可以有多個 connection group 嗎？**
 可以。每行可以指定不同的 `connGroup`，腳本會自動建立或重用。
 
