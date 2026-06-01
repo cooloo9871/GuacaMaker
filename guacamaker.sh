@@ -418,18 +418,23 @@ delete_connection_group_if_empty() {
 
 trap '
   if [[ "$MODE" == "create" && "$DRY_RUN" -eq 0 && "${#pw_accounts[@]}" -gt 0 ]]; then
+    _tmp=$(mktemp)
     if [[ -f "$SCRIPT_DIR/passwords.csv" ]]; then
-      for i in "${!pw_accounts[@]}"; do
-        echo "${pw_accounts[$i]},${pw_passwords[$i]}"
-      done >> "$SCRIPT_DIR/passwords.csv"
-    else
-      {
-        echo "userAccount,userPassword"
-        for i in "${!pw_accounts[@]}"; do
-          echo "${pw_accounts[$i]},${pw_passwords[$i]}"
+      head -1 "$SCRIPT_DIR/passwords.csv" > "$_tmp"
+      while IFS=, read -r acct pw; do
+        _skip=0
+        for _n in "${pw_accounts[@]}"; do
+          [[ "$acct" == "$_n" ]] && _skip=1 && break
         done
-      } > "$SCRIPT_DIR/passwords.csv"
+        [[ "$_skip" -eq 0 ]] && echo "$acct,$pw"
+      done < <(tail -n +2 "$SCRIPT_DIR/passwords.csv") >> "$_tmp"
+    else
+      echo "userAccount,userPassword" > "$_tmp"
     fi
+    for i in "${!pw_accounts[@]}"; do
+      echo "${pw_accounts[$i]},${pw_passwords[$i]}"
+    done >> "$_tmp"
+    mv "$_tmp" "$SCRIPT_DIR/passwords.csv"
     echo "[INFO] Passwords saved to $SCRIPT_DIR/passwords.csv" >&2
   fi
   if [[ "$MODE" == "delete" && "$DRY_RUN" -eq 0 && "${#_deleted_accounts[@]}" -gt 0 && -f "$SCRIPT_DIR/passwords.csv" ]]; then
