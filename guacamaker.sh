@@ -297,10 +297,12 @@ ensure_user() {
 }
 
 assign_connection() {
-  local username="$1" conn_id="$2" conn_name="$3"
+  local username="$1" conn_id="$2" conn_name="$3" group_id="$4"
   local body
-  body=$(jq -n --arg cid "$conn_id" \
-    '[{"op":"add","path":("/connectionPermissions/" + $cid),"value":"READ"}]')
+  body=$(jq -n --arg cid "$conn_id" --arg gid "$group_id" '[
+    {"op":"add","path":("/connectionPermissions/" + $cid),"value":"READ"},
+    {"op":"add","path":("/connectionGroupPermissions/" + $gid),"value":"READ"}
+  ]')
   api_patch "/api/session/data/$DATA_SOURCE/users/$(url_encode "$username")/permissions" "$body"
   echo "[INFO]   assigned $conn_name to $username" >&2
 }
@@ -390,7 +392,7 @@ while IFS='|' read -r userAccount userPassword connGroup connName \
     conn_id=$(ensure_connection "$connName" "$group_id" "$connProtocol" \
                "$connIP" "$connPort" "$connAccount" "$connPassword" "$connDomain")
     ensure_user "$userAccount" "$userPassword"
-    assign_connection "$userAccount" "$conn_id" "$connName"
+    assign_connection "$userAccount" "$conn_id" "$connName" "$group_id"
   else
     _groups=$(api_get "/api/session/data/$DATA_SOURCE/connectionGroups")
     group_id=$(jq -r --arg name "$connGroup" '
