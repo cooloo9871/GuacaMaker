@@ -179,7 +179,7 @@ ensure_connection_group() {
 
 ensure_connection() {
   local name="$1" group_id="$2" protocol="$3" ip="$4" port="$5"
-  local account="$6" password="$7" domain="$8"
+  local account="$6" password="$7" domain="${8:-}"
   local connections existing_id
   connections=$(api_get "/api/session/data/$DATA_SOURCE/connections")
   existing_id=$(jq -r --arg name "$name" --arg gid "$group_id" '
