@@ -25,7 +25,7 @@ if [[ -z "$MODE" ]]; then
   echo "  --create    建立或更新 mapping.list 中的 users 與 connections" >&2
   echo "  --delete    刪除 mapping.list 中的 users、connections 及空的 connection groups" >&2
   echo "  --list      列出所有帳號與密碼（CSV 格式）" >&2
-  echo "  --dry-run   模擬執行，不實際呼叫寫入 API（僅適用 --create）" >&2
+  echo "  --dry-run   模擬執行，不實際呼叫寫入 API（適用 --create 與 --delete）" >&2
   exit 1
 fi
 
@@ -389,10 +389,23 @@ delete_connection_group_if_empty() {
 
 # ─── Main ────────────────────────────────────────────────────────────────────
 
+trap '
+  if [[ "$MODE" == "create" && "$DRY_RUN" -eq 0 && "${#pw_accounts[@]}" -gt 0 ]]; then
+    {
+      echo '"'"'"userAccount","userPassword"'"'"'
+      for i in "${!pw_accounts[@]}"; do
+        echo "\"${pw_accounts[$i]//\"/\"\"}\",\"${pw_passwords[$i]//\"/\"\"}\""
+      done
+    } > "$SCRIPT_DIR/passwords.csv"
+    echo "[INFO] Passwords saved to $SCRIPT_DIR/passwords.csv" >&2
+  fi
+' EXIT
+
 api_login
 
 pw_accounts=()
 pw_passwords=()
+declare -A _seen_users
 row_num=0
 while IFS='|' read -r userAccount userPassword connGroup connName \
                        connProtocol connIP connPort connAccount connPassword connDomain; do
@@ -402,10 +415,13 @@ while IFS='|' read -r userAccount userPassword connGroup connName \
 
   if [[ "$MODE" == "create" ]]; then
     if [[ -z "$userPassword" ]]; then
-      userPassword=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 7)
+      userPassword=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 7 || true)
     fi
-    pw_accounts+=("$userAccount")
-    pw_passwords+=("$userPassword")
+    if [[ -z "${_seen_users[$userAccount]:-}" ]]; then
+      pw_accounts+=("$userAccount")
+      pw_passwords+=("$userPassword")
+      _seen_users[$userAccount]=1
+    fi
     group_id=$(ensure_connection_group "$connGroup")
     conn_id=$(ensure_connection "$connName" "$group_id" "$connProtocol" \
                "$connIP" "$connPort" "$connAccount" "$connPassword" "$connDomain")
@@ -427,15 +443,5 @@ while IFS='|' read -r userAccount userPassword connGroup connName \
   fi
 
 done < <(sed 's/\r//' "$MAPPING_LIST" | grep -v '^#' | grep -v '^[[:space:]]*$')
-
-if [[ "$MODE" == "create" && "$DRY_RUN" -eq 0 ]]; then
-  {
-    echo "userAccount,userPassword"
-    for i in "${!pw_accounts[@]}"; do
-      echo "${pw_accounts[$i]},${pw_passwords[$i]}"
-    done
-  } > "$SCRIPT_DIR/passwords.csv"
-  echo "[INFO] Passwords saved to $SCRIPT_DIR/passwords.csv" >&2
-fi
 
 echo "[INFO] Done. $row_num rows processed." >&2
