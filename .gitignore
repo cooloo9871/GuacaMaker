@@ -1,3 +1,5 @@
-# 含真實憑證的設定檔，不 commit 進 git
-env.conf
-mapping.list
+# 此檔案目前無排除規則
+# env.conf 和 mapping.list 已直接 commit 進 git（含範例值）
+# 若要避免將真實憑證 commit 進 git，請在此加入：
+#   env.conf
+#   mapping.list

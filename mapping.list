@@ -1,8 +1,4 @@
 # GuacaMaker - User 與 Connection 對應清單
-# 使用方式：複製本檔為 mapping.list 並填入真實值
-#   cp mapping.list.example mapping.list
-#
-# 注意：mapping.list 已列入 .gitignore，不會被 commit
 #
 # 格式規則：
 #   - 分隔符號為 | (pipe)
