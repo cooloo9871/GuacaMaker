@@ -81,6 +81,13 @@ userAccount|userPassword|connGroup|connName|connProtocol|connIP|connPort|connAcc
 
 ## 用法
 
+執行時未提供旗標會顯示用法說明並以 exit 1 結束：
+
+```bash
+./guacamaker.sh
+# Usage: guacamaker.sh --create | --delete [--dry-run]
+```
+
 ### 建立或更新（--create）
 
 ```bash

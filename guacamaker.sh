@@ -351,6 +351,7 @@ delete_connection_group_if_empty() {
   ' <<< "$groups" | head -1)
 
   if [[ -z "$group_id" ]]; then
+    echo "[INFO]   connection group '$name'... not found, skipped" >&2
     return
   fi
 
@@ -363,8 +364,13 @@ delete_connection_group_if_empty() {
   if [[ "$remaining" -gt 0 ]]; then
     echo "[INFO]   connection group '$name'... kept (has connections)" >&2
   else
-    api_delete "/api/session/data/$DATA_SOURCE/connectionGroups/$group_id" >/dev/null
-    echo "[INFO]   connection group '$name'... deleted (empty)" >&2
+    local gs
+    gs=$(api_delete "/api/session/data/$DATA_SOURCE/connectionGroups/$group_id")
+    if [[ "$gs" == "404" ]]; then
+      echo "[INFO]   connection group '$name'... not found, skipped" >&2
+    else
+      echo "[INFO]   connection group '$name'... deleted (empty)" >&2
+    fi
   fi
 }
 
@@ -392,6 +398,9 @@ while IFS='|' read -r userAccount userPassword connGroup connName \
       | select(.value.name == $name and .key != "ROOT" and .value.identifier != null)
       | .value.identifier
     ' <<< "$_groups" | head -1)
+    if [[ -z "$group_id" ]]; then
+      echo "[WARN]   connection group '$connGroup'... not found, skipping connection lookup" >&2
+    fi
     delete_user "$userAccount"
     delete_connection "$connName" "$group_id"
     delete_connection_group_if_empty "$connGroup"
