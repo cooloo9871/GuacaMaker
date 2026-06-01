@@ -252,3 +252,24 @@ assign_connection() {
   api_patch "/api/session/data/$DATA_SOURCE/users/$(url_encode "$username")/permissions" "$body"
   echo "[INFO]   assigned $conn_name to $username" >&2
 }
+
+# ─── Main ────────────────────────────────────────────────────────────────────
+
+api_login
+
+row_num=0
+while IFS='|' read -r userAccount userPassword connGroup connName \
+                       connProtocol connIP connPort connAccount connPassword connDomain; do
+  [[ -z "$userAccount" ]] && continue
+  row_num=$((row_num + 1))
+  echo "[INFO] Row $row_num: $userAccount → $connName" >&2
+
+  group_id=$(ensure_connection_group "$connGroup")
+  conn_id=$(ensure_connection "$connName" "$group_id" "$connProtocol" \
+             "$connIP" "$connPort" "$connAccount" "$connPassword" "$connDomain")
+  ensure_user "$userAccount" "$userPassword"
+  assign_connection "$userAccount" "$conn_id" "$connName"
+
+done < <(grep -v '^#' "$MAPPING_LIST" | grep -v '^[[:space:]]*$')
+
+echo "[INFO] Done. $row_num rows processed." >&2
