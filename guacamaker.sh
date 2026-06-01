@@ -155,7 +155,7 @@ ensure_connection_group() {
   groups=$(api_get "/api/session/data/$DATA_SOURCE/connectionGroups")
   existing_id=$(jq -r --arg name "$name" '
     to_entries[]
-    | select(.value.name == $name and .key != "ROOT")
+    | select(.value.name == $name and .key != "ROOT" and .value.identifier != null)
     | .value.identifier
   ' <<< "$groups" | head -1)
 
