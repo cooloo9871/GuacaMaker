@@ -346,11 +346,13 @@ assign_connection() {
 delete_user() {
   local username="$1"
   local status
+  _user_deleted=0
   status=$(api_delete "/api/session/data/$DATA_SOURCE/users/$(url_encode "$username")")
   if [[ "$status" == "404" ]]; then
     echo "[INFO]   user '$username'... not found, skipped" >&2
   else
     echo "[INFO]   user '$username'... deleted" >&2
+    _user_deleted=1
   fi
 }
 
@@ -430,15 +432,18 @@ trap '
     fi
     echo "[INFO] Passwords saved to $SCRIPT_DIR/passwords.csv" >&2
   fi
-  if [[ "$MODE" == "delete" && "$DRY_RUN" -eq 0 && -f "$SCRIPT_DIR/passwords.csv" ]]; then
-    _active_users=$(sed "s/\r//" "$MAPPING_LIST" | grep -v "^#" | grep -v "^[[:space:]]*$" | cut -d"|" -f1 | sort -u)
+  if [[ "$MODE" == "delete" && "$DRY_RUN" -eq 0 && "${#_deleted_accounts[@]}" -gt 0 && -f "$SCRIPT_DIR/passwords.csv" ]]; then
     _tmp=$(mktemp)
     head -1 "$SCRIPT_DIR/passwords.csv" > "$_tmp"
-    tail -n +2 "$SCRIPT_DIR/passwords.csv" | while IFS=, read -r acct pw; do
-      echo "$_active_users" | grep -qx "$acct" && echo "$acct,$pw"
-    done >> "$_tmp"
+    while IFS=, read -r acct pw; do
+      _skip=0
+      for _d in "${_deleted_accounts[@]}"; do
+        [[ "$acct" == "$_d" ]] && _skip=1 && break
+      done
+      [[ "$_skip" -eq 0 ]] && echo "$acct,$pw"
+    done < <(tail -n +2 "$SCRIPT_DIR/passwords.csv") >> "$_tmp"
     mv "$_tmp" "$SCRIPT_DIR/passwords.csv"
-    echo "[INFO] Synced passwords.csv with active mapping.list" >&2
+    echo "[INFO] Removed deleted users from $SCRIPT_DIR/passwords.csv" >&2
   fi
 ' EXIT
 
@@ -446,6 +451,7 @@ api_login
 
 pw_accounts=()
 pw_passwords=()
+_deleted_accounts=()
 declare -A _seen_users
 row_num=0
 while IFS='|' read -r userAccount userPassword connGroup connName \
@@ -476,6 +482,7 @@ while IFS='|' read -r userAccount userPassword connGroup connName \
       echo "[WARN]   connection group '$connGroup'... not found, skipping connection lookup" >&2
     fi
     delete_user "$userAccount"
+    [[ "$_user_deleted" -eq 1 ]] && _deleted_accounts+=("$userAccount")
     delete_connection "$connName" "$group_id"
     delete_connection_group_if_empty "$connGroup"
   fi
