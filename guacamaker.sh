@@ -45,3 +45,100 @@ done
 
 TOKEN=""
 DATA_SOURCE=""
+
+# ─── API Layer ───────────────────────────────────────────────────────────────
+
+api_login() {
+  echo "[INFO] Logging in to $GUAC_API_URL..." >&2
+  local response http_code body
+  response=$(curl -s -w "\n%{http_code}" \
+    -X POST "$GUAC_API_URL/api/tokens" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    --data-urlencode "username=$GUAC_ADMIN_USER" \
+    --data-urlencode "password=$GUAC_ADMIN_PASS")
+  http_code=$(tail -1 <<< "$response")
+  body=$(sed '$d' <<< "$response")
+  if [[ "$http_code" != "200" ]]; then
+    echo "[ERROR] Login failed (HTTP $http_code): $body" >&2
+    exit 1
+  fi
+  TOKEN=$(jq -r '.authToken' <<< "$body")
+  DATA_SOURCE=$(jq -r '.dataSource' <<< "$body")
+}
+
+api_get() {
+  local path="$1"
+  local response http_code body
+  response=$(curl -s -w "\n%{http_code}" \
+    -H "Guacamole-Token: $TOKEN" \
+    "$GUAC_API_URL$path")
+  http_code=$(tail -1 <<< "$response")
+  body=$(sed '$d' <<< "$response")
+  if [[ "$http_code" != "200" ]]; then
+    echo "[ERROR] GET $path failed (HTTP $http_code): $body" >&2
+    exit 1
+  fi
+  echo "$body"
+}
+
+api_post() {
+  local path="$1" body="$2"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[DRY-RUN] Would POST $path" >&2
+    echo '{"identifier":"0"}'
+    return
+  fi
+  local response http_code resp_body
+  response=$(curl -s -w "\n%{http_code}" \
+    -X POST "$GUAC_API_URL$path" \
+    -H "Content-Type: application/json" \
+    -H "Guacamole-Token: $TOKEN" \
+    -d "$body")
+  http_code=$(tail -1 <<< "$response")
+  resp_body=$(sed '$d' <<< "$response")
+  if [[ "$http_code" != "200" ]]; then
+    echo "[ERROR] POST $path failed (HTTP $http_code): $resp_body" >&2
+    exit 1
+  fi
+  echo "$resp_body"
+}
+
+api_put() {
+  local path="$1" body="$2"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[DRY-RUN] Would PUT $path" >&2
+    return
+  fi
+  local response http_code resp_body
+  response=$(curl -s -w "\n%{http_code}" \
+    -X PUT "$GUAC_API_URL$path" \
+    -H "Content-Type: application/json" \
+    -H "Guacamole-Token: $TOKEN" \
+    -d "$body")
+  http_code=$(tail -1 <<< "$response")
+  resp_body=$(sed '$d' <<< "$response")
+  if [[ "$http_code" != "200" && "$http_code" != "204" ]]; then
+    echo "[ERROR] PUT $path failed (HTTP $http_code): $resp_body" >&2
+    exit 1
+  fi
+}
+
+api_patch() {
+  local path="$1" body="$2"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    echo "[DRY-RUN] Would PATCH $path" >&2
+    return
+  fi
+  local response http_code resp_body
+  response=$(curl -s -w "\n%{http_code}" \
+    -X PATCH "$GUAC_API_URL$path" \
+    -H "Content-Type: application/json" \
+    -H "Guacamole-Token: $TOKEN" \
+    -d "$body")
+  http_code=$(tail -1 <<< "$response")
+  resp_body=$(sed '$d' <<< "$response")
+  if [[ "$http_code" != "200" && "$http_code" != "204" ]]; then
+    echo "[ERROR] PATCH $path failed (HTTP $http_code): $resp_body" >&2
+    exit 1
+  fi
+}
