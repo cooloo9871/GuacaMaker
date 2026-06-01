@@ -430,12 +430,26 @@ trap '
     fi
     echo "[INFO] Passwords saved to $SCRIPT_DIR/passwords.csv" >&2
   fi
+  if [[ "$MODE" == "delete" && "$DRY_RUN" -eq 0 && "${#_deleted_accounts[@]}" -gt 0 && -f "$SCRIPT_DIR/passwords.csv" ]]; then
+    local_tmp=$(mktemp)
+    head -1 "$SCRIPT_DIR/passwords.csv" > "$local_tmp"
+    while IFS=, read -r acct pw; do
+      local_skip=0
+      for d in "${_deleted_accounts[@]}"; do
+        [[ "$acct" == "$d" ]] && local_skip=1 && break
+      done
+      [[ "$local_skip" -eq 0 ]] && echo "$acct,$pw"
+    done < <(tail -n +2 "$SCRIPT_DIR/passwords.csv") >> "$local_tmp"
+    mv "$local_tmp" "$SCRIPT_DIR/passwords.csv"
+    echo "[INFO] Removed deleted users from $SCRIPT_DIR/passwords.csv" >&2
+  fi
 ' EXIT
 
 api_login
 
 pw_accounts=()
 pw_passwords=()
+_deleted_accounts=()
 declare -A _seen_users
 row_num=0
 while IFS='|' read -r userAccount userPassword connGroup connName \
@@ -468,6 +482,7 @@ while IFS='|' read -r userAccount userPassword connGroup connName \
     delete_user "$userAccount"
     delete_connection "$connName" "$group_id"
     delete_connection_group_if_empty "$connGroup"
+    _deleted_accounts+=("$userAccount")
   fi
 
 done < <(sed 's/\r//' "$MAPPING_LIST" | grep -v '^#' | grep -v '^[[:space:]]*$')
