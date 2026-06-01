@@ -1,0 +1,17 @@
+# GuacaMaker - User 與 Connection 對應清單
+# 使用方式：複製本檔為 mapping.list 並填入真實值
+#   cp mapping.list.example mapping.list
+#
+# 注意：mapping.list 已列入 .gitignore，不會被 commit
+#
+# 格式規則：
+#   - 分隔符號為 | (pipe)
+#   - 每行固定 10 個欄位
+#   - connDomain 不適用時留空（保留尾部的 |，例如 ...|root||）
+#   - connProtocol 支援：rdp / ssh / vnc / telnet
+#   - # 開頭的行為註解，略過不處理
+#   - 空行略過
+
+# userAccount|userPassword|connGroup|connName|connProtocol|connIP|connPort|connAccount|connPassword|connDomain
+alice|Alice@2024|ServerGroup|WinServer01|rdp|192.168.1.10|3389|administrator|WinPass!|CORP
+bob|Bob@2024|ServerGroup|LinuxBox01|ssh|192.168.1.11|22|root||
