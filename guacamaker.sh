@@ -176,3 +176,50 @@ ensure_connection_group() {
     echo "$existing_id"
   fi
 }
+
+ensure_connection() {
+  local name="$1" group_id="$2" protocol="$3" ip="$4" port="$5"
+  local account="$6" password="$7" domain="$8"
+  local connections existing_id
+  connections=$(api_get "/api/session/data/$DATA_SOURCE/connections")
+  existing_id=$(jq -r --arg name "$name" --arg gid "$group_id" '
+    to_entries[]
+    | select(.value.name == $name and .value.parentIdentifier == $gid and .value.identifier != null)
+    | .value.identifier
+  ' <<< "$connections" | head -1)
+
+  local params
+  if [[ -n "$domain" ]]; then
+    params=$(jq -n \
+      --arg h "$ip" --arg p "$port" \
+      --arg u "$account" --arg pw "$password" --arg d "$domain" \
+      '{"hostname":$h,"port":$p,"username":$u,"password":$pw,"domain":$d}')
+  else
+    params=$(jq -n \
+      --arg h "$ip" --arg p "$port" \
+      --arg u "$account" --arg pw "$password" \
+      '{"hostname":$h,"port":$p,"username":$u,"password":$pw}')
+  fi
+
+  if [[ -z "$existing_id" ]]; then
+    local body result new_id
+    body=$(jq -n \
+      --arg name "$name" --arg gid "$group_id" \
+      --arg proto "$protocol" --argjson params "$params" \
+      '{"name":$name,"parentIdentifier":$gid,"protocol":$proto,"parameters":$params,"attributes":{}}')
+    result=$(api_post "/api/session/data/$DATA_SOURCE/connections" "$body")
+    new_id=$(jq -r '.identifier' <<< "$result")
+    echo "[INFO]   connection '$name'... created (id=$new_id)" >&2
+    echo "$new_id"
+  else
+    local body
+    body=$(jq -n \
+      --arg name "$name" --arg gid "$group_id" \
+      --arg proto "$protocol" --arg id "$existing_id" \
+      --argjson params "$params" \
+      '{"name":$name,"parentIdentifier":$gid,"protocol":$proto,"identifier":$id,"parameters":$params,"attributes":{}}')
+    api_put "/api/session/data/$DATA_SOURCE/connections/$existing_id" "$body"
+    echo "[INFO]   connection '$name'... updated (id=$existing_id)" >&2
+    echo "$existing_id"
+  fi
+}
