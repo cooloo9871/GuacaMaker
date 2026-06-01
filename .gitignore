@@ -3,3 +3,4 @@
 # 若要避免將真實憑證 commit 進 git，請在此加入：
 #   env.conf
 #   mapping.list
+passwords.csv

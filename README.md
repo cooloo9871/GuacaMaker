@@ -134,6 +134,20 @@ userAccount|userPassword|connGroup|connName|connProtocol|connIP|connPort|connAcc
 [INFO] Done. 2 rows processed.
 ```
 
+### 列出帳號密碼（--list）
+
+```bash
+./guacamaker.sh --list
+```
+
+印出 `passwords.csv` 內容（每次 `--create` 執行後更新）：
+
+```
+userAccount,userPassword
+alice,Alice@2024
+bob,xK3mP9q
+```
+
 ### Dry-run 模式
 
 加上 `--dry-run` 可模擬執行——**只讀取不寫入**，確認設定無誤後再正式執行：
@@ -154,6 +168,7 @@ Dry-run 模式下，寫入操作會顯示為：
 
 ## 行為說明
 
+- **自動密碼**：`mapping.list` 中 `userPassword` 欄位若為空，`--create` 執行時自動產生 7 字元隨機密碼（A-Za-z0-9），並連同所有帳號密碼一起寫入 `passwords.csv`。
 - **Upsert**：`mapping.list` 中的每筆資料，若已存在則**更新**，不存在則**建立**。清單以外的既有資料**不受影響**。
 - **遇錯即停**：任何 API 呼叫失敗，腳本立即終止並顯示錯誤訊息（HTTP 狀態碼與回應內容）。
 - **Connection Group**：若指定的 group 不存在，自動建立於根目錄（ROOT）下。
@@ -176,6 +191,9 @@ Dry-run 模式下，寫入操作會顯示為：
 
 **Q: mapping.list 可以有多個 connection group 嗎？**
 可以。每行可以指定不同的 `connGroup`，腳本會自動建立或重用。
+
+**Q: 如何查看自動產生的密碼？**
+執行 `--create` 後，密碼會寫入同目錄的 `passwords.csv`。用 `./guacamaker.sh --list` 或直接 `cat passwords.csv` 查看。`passwords.csv` 已列入 `.gitignore`，不會被 commit。
 
 ## 授權
 
