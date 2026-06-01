@@ -13,7 +13,8 @@ for arg in "$@"; do
   case "$arg" in
     --create)  [[ -n "$MODE" ]] && { echo "[ERROR] --create, --delete and --list are mutually exclusive" >&2; exit 1; }; MODE=create ;;
     --delete)  [[ -n "$MODE" ]] && { echo "[ERROR] --create, --delete and --list are mutually exclusive" >&2; exit 1; }; MODE=delete ;;
-    --list|--list-pw) [[ -n "$MODE" ]] && { echo "[ERROR] --create, --delete and --list are mutually exclusive" >&2; exit 1; }; MODE=list ;;
+    --list)    [[ -n "$MODE" ]] && { echo "[ERROR] --create, --delete, --list and --list-pw are mutually exclusive" >&2; exit 1; }; MODE=list ;;
+    --list-pw) [[ -n "$MODE" ]] && { echo "[ERROR] --create, --delete, --list and --list-pw are mutually exclusive" >&2; exit 1; }; MODE=list-pw ;;
     --dry-run) DRY_RUN=1 ;;
     *) echo "[ERROR] Unknown argument: $arg" >&2; exit 1 ;;
   esac
@@ -25,17 +26,21 @@ if [[ -z "$MODE" ]]; then
   echo "  --create     建立或更新 mapping.list 中的 users 與 connections" >&2
   echo "  --delete     刪除 mapping.list 中的 users、connections 及空的 connection groups" >&2
   echo "  --list       列出所有帳號與密碼（CSV 格式）" >&2
-  echo "  --list-pw    同 --list" >&2
+  echo "  --list-pw    只列出密碼欄位" >&2
   echo "  --dry-run    模擬執行，不實際呼叫寫入 API（適用 --create 與 --delete）" >&2
   exit 1
 fi
 
-if [[ "$MODE" == "list" ]]; then
+if [[ "$MODE" == "list" || "$MODE" == "list-pw" ]]; then
   if [[ ! -f "$SCRIPT_DIR/passwords.csv" ]]; then
     echo "[ERROR] passwords.csv not found at $SCRIPT_DIR/passwords.csv. Run --create first." >&2
     exit 1
   fi
-  cat "$SCRIPT_DIR/passwords.csv"
+  if [[ "$MODE" == "list" ]]; then
+    cat "$SCRIPT_DIR/passwords.csv"
+  else
+    awk -F, 'NR==1{print "userPassword"} NR>1{print $2}' "$SCRIPT_DIR/passwords.csv"
+  fi
   exit 0
 fi
 
