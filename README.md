@@ -12,7 +12,7 @@
 ## 安裝
 
 ```bash
-git clone https://github.com/your-org/GuacaMaker.git
+git clone https://github.com/cooloo9871/GuacaMaker.git
 cd GuacaMaker
 ```
 
